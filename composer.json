@@ -1,5 +1,5 @@
 {
-    "name": "miraccul/task02",
+    "name": "miraccul/tic-tac-toe",
     "type": "project",
     "require": {
         "wp-cli/php-cli-tools": "^0.11.11"
