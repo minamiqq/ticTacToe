@@ -39,3 +39,10 @@
     * Выполнить команду `composer require miraccul/tic-tac-toe`;
     * Перейти в каталог bin;
     * Запустить файл tic-tac-toe.bat.
+
+* * *
+
+## Ссылки
+
+Packagist: https://packagist.org/packages/miraccul/tic-tac-toe
+
