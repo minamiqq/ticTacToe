@@ -1,0 +1,20 @@
+{
+    "name": "miraccul/task02",
+    "type": "project",
+    "require": {
+        "wp-cli/php-cli-tools": "^0.11.11"
+    },
+    "authors": [{
+        "name": "Vlad Balashov",
+        "email": "balashovv.vlad@gmail.com"
+    }],
+    "bin": [
+        "bin/tic-tac-toe.php"
+    ],
+    "autoload": {
+        "files": [
+            "src/Controller.php",
+            "src/View.php"
+        ]
+    }
+}
