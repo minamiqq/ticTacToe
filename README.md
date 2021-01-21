@@ -45,4 +45,3 @@
 ## Ссылки
 
 Packagist: https://packagist.org/packages/miraccul/tic-tac-toe
-
