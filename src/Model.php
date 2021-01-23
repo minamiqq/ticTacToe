@@ -4,6 +4,7 @@ namespace miraccul\ticTacToe\Model;
 
 use Exception as Exception;
 use LogicException as LogicException;
+use RedBeanPHP\R as R;
 
 const DEFAULT_DIMENSION = 3;
 const DEFAULT_MARKUP = " ";
@@ -216,7 +217,7 @@ class Board
     public function openDatabase()
     {
         if (!file_exists("gamedb.db")) {
-            $db = new \SQLite3('gamedb.db');
+            R::setup("sqlite:gamedb.db");
 
             $gamesInfoTable = "CREATE TABLE gamesInfo(
         idGame INTEGER PRIMARY KEY,
@@ -226,7 +227,7 @@ class Board
         sizeBoard INTEGER,
         result TEXT
     )";
-            $db->exec($gamesInfoTable);
+            R::exec($gamesInfoTable);
 
 
             $stepsInfoTable = "CREATE TABLE stepsInfo(
@@ -235,17 +236,13 @@ class Board
         rowCoord INTEGER,
         colCoord INTEGER
     )";
-            $db->exec($stepsInfoTable);
-        } else {
-            $db = new \SQLite3('gamedb.db');
+            R::exec($stepsInfoTable);
         }
-        return $db;
     }
 
     public function endGame($idGame, $result)
     {
-        $db = openDatabase();
-        $db->exec("UPDATE gamesInfo
+        R::exec("UPDATE gamesInfo
             SET result = '$result'
             WHERE idGame = '$idGame'");
     }

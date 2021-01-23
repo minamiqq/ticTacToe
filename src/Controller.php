@@ -5,6 +5,7 @@ namespace miraccul\ticTacToe\Controller;
     use miraccul\ticTacToe\Model\Board as Board;
     use Exception as Exception;
     use LogicException as LogicException;
+    use RedBeanPHP\R as R;
 
     use function cli\prompt;
     use function cli\line;
@@ -18,6 +19,9 @@ namespace miraccul\ticTacToe\Controller;
 
 function startGame()
 {
+    if (file_exists("gamedb.db")) {
+        R::setup("sqlite:gamedb.db");
+    }
     while (true) {
         $command = prompt("Enter key");
         $gameBoard = new Board();
@@ -50,7 +54,7 @@ function initialize($board)
 {
     try {
         $board->setUserName(getValue("Enter user name"));
-        $board->setDimension(getValue("Enter the field size"));
+        $board->setDimension(getValue("Enter board-size"));
         $board->initialize();
     } catch (Exception $e) {
         showMessage($e->getMessage());
@@ -68,10 +72,10 @@ function gameLoop($board)
     date_default_timezone_set("Europe/Moscow");
     $gameData = date("d") . "." . date("m") . "." . date("Y");
     $gameTime = date("H") . ":" . date("i") . ":" . date("s");
-    $playerName =  $board->getUser();
+    $playerName = $board->getUser();
     $size = $board->getDimension();
 
-    $db->exec("INSERT INTO gamesInfo (
+    R::exec("INSERT INTO gamesInfo (
         gameData, 
         gameTime, 
         playerName, 
@@ -84,7 +88,7 @@ function gameLoop($board)
         '$size', 
         'НЕ ЗАКОНЧЕНО')");
 
-    $id = $db->querySingle("SELECT idGame FROM gamesInfo ORDER BY idGame DESC LIMIT 1");
+    $id = R::getCell("SELECT idGame FROM gamesInfo ORDER BY idGame DESC LIMIT 1");
 
     $board->setId($id);
     $gameId = $board->getGameId();
@@ -93,11 +97,11 @@ function gameLoop($board)
         showGameBoard($board);
         if ($currentMarkup == $board->getUserMarkup()) {
             $db = processUserTurn($board, $currentMarkup, $stopGame, $db);
-            $endGameMsg = "Player '$currentMarkup' won!";
+            $endGameMsg = "Player '$currentMarkup' wins the game.";
             $currentMarkup = $board->getComputerMarkup();
         } else {
             $db = processComputerTurn($board, $currentMarkup, $stopGame, $db);
-            $endGameMsg = "Player '$currentMarkup' won!";
+            $endGameMsg = "Player '$currentMarkup' wins the game.";
             $currentMarkup = $board->getUserMarkup();
         }
 
@@ -132,7 +136,7 @@ function processUserTurn($board, $markup, &$stopGame, $db)
             $mark = $board->getMarkup();
             $col = $coords[0] + 1;
             $row = $coords[1] + 1;
-            $db->exec("INSERT INTO stepsInfo (
+            R::exec("INSERT INTO stepsInfo (
                 idGame, 
                 playerMark, 
                 rowCoord, 
@@ -187,7 +191,7 @@ function processComputerTurn($board, $markup, &$stopGame, $db)
             if ($board->determineWinner($i, $j) !== "") {
                 $stopGame = true;
             }
-            $db->exec("INSERT INTO stepsInfo (
+            R::exec("INSERT INTO stepsInfo (
                 idGame, 
                 playerMark, 
                 rowCoord, 
@@ -221,28 +225,33 @@ function inviteToContinue(&$canContinue)
 function listGames($board)
 {
     $db = $board->openDatabase();
-    $query = $db->query('SELECT * FROM gamesInfo');
-    while ($row = $query->fetchArray()) {
-        line("ID $row[0])\n    Date:$row[1] Time: $row[2]\n    Player Name:$row[3]\n    Size :$row[4]\n    Result:$row[5]");
+    $query = R::getAll("SELECT * FROM 'gamesInfo'");
+    foreach ($query as $row) {
+        line("ID $row[idGame]");
+        line("Date:$row[gameData]");
+        line("Time: $row[gameTime]");
+        line("Player Name:$row[playerName]");
+        line("Size :$row[sizeBoard]");
+        line("Result:$row[result]");
     }
 }
 
 function replayGame($board, $id)
 {
     $db = $board->openDatabase();
-    $idGame = $db->querySingle("SELECT EXISTS(SELECT 1 FROM gamesInfo WHERE idGame='$id')");
+    $idGame = R::getCell("SELECT EXISTS(SELECT 1 FROM gamesInfo WHERE idGame='$id')");
 
     if ($idGame == 1) {
-        $status = $db->querySingle("SELECT result from gamesInfo where idGame = '$id'");
-        $query = $db->query("SELECT rowCoord, colCoord, playerMark from stepsInfo where idGame = '$id'");
-        $dim = $db->querySingle("SELECT sizeBoard from gamesInfo where idGame = '$id'");
+        $status = R::getCell("SELECT result from gamesInfo where idGame = '$id'");
+        $query = R::getAll("SELECT rowCoord, colCoord, playerMark from stepsInfo where idGame = '$id'");
+        $dim = R::getCell("SELECT sizeBoard from gamesInfo where idGame = '$id'");
         $turn = 1;
         line("Game status: " . $status);
         $board->setDimension($dim);
         $board->initialize();
         showGameBoard($board);
-        while ($row = $query->fetchArray()) {
-            $board->setMarkupOnBoard($row[0] - 1, $row[1] - 1, $row[2]);
+        foreach ($query as $row) {
+            $board->setMarkupOnBoard($row['rowCoord'] - 1, $row['colCoord'] - 1, $row['playerMark']);
             showGameBoard($board);
         }
     } else {
