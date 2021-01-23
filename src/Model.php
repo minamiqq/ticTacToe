@@ -9,6 +9,7 @@ const DEFAULT_DIMENSION = 3;
 const DEFAULT_MARKUP = " ";
 const PLAYER_X_MARKUP = "X";
 const PLAYER_O_MARKUP = "O";
+
 class Board
 {
     private $dimension;
@@ -17,6 +18,10 @@ class Board
     private $userMarkup;
     private $computerMarkup;
     private $freeSpaceCount;
+    private $user_name;
+    private $game_id;
+    private $turn_number;
+
     public function __construct()
     {
         $this->dimension = DEFAULT_DIMENSION;
@@ -70,16 +75,17 @@ class Board
     public function determineWinner($i, $j)
     {
         if (
-            $this->checkArr[$i - 1] == $this->dimension ||
-            $this->checkArr[$this->dimension + $j - 1] == $this->dimension
+            $this->checkArr[$i] == $this->dimension ||
+            $this->checkArr[$this->dimension + $j] == $this->dimension
         ) {
             return PLAYER_X_MARKUP;
         } elseif (
-            $this->checkArr[$i - 1] == -$this->dimension ||
-            $this->checkArr[$this->dimension + $j - 1] == -$this->dimension
+            $this->checkArr[$i] == -$this->dimension ||
+            $this->checkArr[$this->dimension + $j] == -$this->dimension
         ) {
             return PLAYER_O_MARKUP;
         }
+
         if (
             $this->checkArr[2 * $this->dimension] == $this->dimension ||
             $this->checkArr[2 * $this->dimension + 1] == $this->dimension
@@ -98,8 +104,6 @@ class Board
     public function setMarkupOnBoard($i, $j, $markup)
     {
         if ($this->isCoordsCorrect($i, $j)) {
-            $i -= 1;
-            $j -= 1;
             if ($this->isSetPossible($i, $j)) {
                 $this->boardArr[$i][$j] = $markup;
                 $this->updateCheckArr($i, $j, $markup);
@@ -114,12 +118,7 @@ class Board
 
     private function isCoordsCorrect($i, $j)
     {
-        if (is_numeric($i) && is_numeric($j)) {
-            if ($i >= 1 && $i <= $this->dimension && $j >= 1 && $j <= $this->dimension) {
-                return true;
-            }
-        }
-        return false;
+        return is_numeric($i) && is_numeric($j) && $i >= 0 && $i < $this->dimension && $j >= 0 && $j < $this->dimension;
     }
 
     private function isSetPossible($i, $j)
@@ -140,6 +139,7 @@ class Board
 
         $this->checkArr[$i] += $offset;
         $this->checkArr[$this->dimension + $j] += $offset;
+
         if (($i == $j) && ($i == ($this->dimension - 1 - $j))) {
             $this->checkArr[2 * $this->dimension] += $offset;
             $this->checkArr[2 * $this->dimension + 1] += $offset;
@@ -164,6 +164,15 @@ class Board
         }
     }
 
+    public function setId($id)
+    {
+        if (is_numeric($id)) {
+            return $this->game_id = $id;
+        } else {
+            throw new Exception("Incorrect id");
+        }
+    }
+
     public function getDimension()
     {
         return $this->dimension;
@@ -182,5 +191,62 @@ class Board
     public function isFreeSpaceEnough()
     {
         return $this->freeSpaceCount !== 0;
+    }
+
+    public function setUserName($name)
+    {
+        return $this->user_name = $name;
+    }
+
+    public function getUser()
+    {
+        return $this->user_name;
+    }
+
+    public function getGameId()
+    {
+        return $this->game_id;
+    }
+
+    public function getMarkup()
+    {
+        return $this->userMarkup;
+    }
+
+    public function openDatabase()
+    {
+        if (!file_exists("gamedb.db")) {
+            $db = new \SQLite3('gamedb.db');
+
+            $gamesInfoTable = "CREATE TABLE gamesInfo(
+        idGame INTEGER PRIMARY KEY,
+        gameData DATE,
+        gameTime TIME,
+        playerName TEXT,
+        sizeBoard INTEGER,
+        result TEXT
+    )";
+            $db->exec($gamesInfoTable);
+
+
+            $stepsInfoTable = "CREATE TABLE stepsInfo(
+        idGame INTEGER,
+        playerMark TEXT,
+        rowCoord INTEGER,
+        colCoord INTEGER
+    )";
+            $db->exec($stepsInfoTable);
+        } else {
+            $db = new \SQLite3('gamedb.db');
+        }
+        return $db;
+    }
+
+    public function endGame($idGame, $result)
+    {
+        $db = openDatabase();
+        $db->exec("UPDATE gamesInfo
+            SET result = '$result'
+            WHERE idGame = '$idGame'");
     }
 }
